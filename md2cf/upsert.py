@@ -53,6 +53,7 @@ def upsert_page(
     only_changed: bool = False,
     replace_all_labels: bool = False,
     minor_edit: bool = False,
+    extra_labels: list[str] = [],
 ):
     existing_page = confluence.get_page(
         title=page.title,
@@ -80,6 +81,9 @@ def upsert_page(
         page_message = (
             f"{page_message} [v{page_hash}]" if page_message else f"[v{page_hash}]"
         )
+
+    if len(extra_labels) != 0:
+        page.labels = list(page.labels + extra_labels)
 
     action = None
     if existing_page is None:

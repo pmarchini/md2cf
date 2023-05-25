@@ -467,3 +467,93 @@ def test_page_needs_updating_content_replace_all_labels_and_empty_labels_supplie
     assert not md2cf.upsert.page_needs_updating(
         page, existing_page_mock, replace_all_labels=True
     )
+
+def test_upsert_page_with_extra_labels_on_creation(mocker):
+    """Case: extra_labels are provided for the creation of the page"""
+
+    confluence = mocker.Mock(spec=Confluence)
+    confluence.get_page.return_value = None
+    confluence.create_page.return_value = mocker.sentinel.upserted_page
+
+    existing_labels = ['label1', 'label2']
+    extra_labels = ['extra1', 'extra2']
+    
+
+    page = Page(
+        space=mocker.sentinel.space,
+        title=mocker.sentinel.title,
+        body=mocker.sentinel.body,
+        parent_id=mocker.sentinel.parent_id,
+        labels=existing_labels
+    )
+
+
+    upsert_result = md2cf.upsert.upsert_page(
+        confluence=confluence,
+        page=page,
+        message=mocker.sentinel.message,
+        extra_labels=extra_labels
+    )
+
+    assert upsert_result.response == mocker.sentinel.upserted_page
+    assert upsert_result.action == upsert_result.action.CREATED
+
+    confluence.create_page.assert_called_once_with(
+        space=page.space,
+        title=page.title,
+        body=page.body,
+        content_type=page.content_type,
+        parent_id=mocker.sentinel.parent_id,
+        update_message=mocker.sentinel.message,
+        labels=existing_labels + extra_labels,
+    )
+
+    confluence.update_page.assert_not_called()
+
+def test_upsert_page_with_extra_labels_on_update(mocker):
+    """Case: extra_labels are provided for the update of the page"""
+
+    confluence = mocker.Mock(spec=Confluence)
+    existing_page_mock = mocker.Mock()
+    existing_page_mock.ancestors = [mocker.Mock()]
+    confluence.get_page.side_effect = [existing_page_mock, None]
+    
+    updated_page_mock = mocker.Mock()
+    updated_page_mock.metadata.labels.results = []
+    confluence.update_page.return_value = updated_page_mock
+
+    existing_labels = ['label1', 'label2']
+    extra_labels = ['extra1', 'extra2']
+
+    page = Page(
+        space=mocker.sentinel.space,
+        title=mocker.sentinel.title,
+        body=mocker.sentinel.body,
+        parent_id=mocker.sentinel.parent_id,
+        labels=existing_labels
+    )
+
+    upsert_result = md2cf.upsert.upsert_page(
+        confluence=confluence,
+        page=page,
+        message=mocker.sentinel.message,
+        extra_labels=extra_labels
+    )
+
+
+    confluence.update_page.assert_called_once_with(
+        page=existing_page_mock,
+        body=page.body,
+        minor_edit=False,
+        parent_id=mocker.sentinel.parent_id,
+        update_message=mocker.sentinel.message,
+        labels=None,
+    )
+
+    confluence.add_labels.assert_called_once_with(
+        page=updated_page_mock,
+        labels=existing_labels + extra_labels
+    )
+
+    assert upsert_result.response == updated_page_mock
+    assert upsert_result.action == upsert_result.action.UPDATED

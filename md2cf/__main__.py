@@ -249,6 +249,11 @@ def get_parser():
         help="markdown files or directories to upload to Confluence. Empty for stdin",
         nargs="*",
     )
+    parser.add_argument(
+        "--custom-labels",
+        type=str,
+        help="add custom labels to upserted pages",
+    )
 
     return parser
 
@@ -400,6 +405,7 @@ def main():
                         only_changed=args.only_changed,
                         replace_all_labels=args.replace_all_labels,
                         minor_edit=args.minor_edit,
+                        extra_labels=(args.extra_labels.split(","))
                     )
                     final_page = upsert_page_result.response
                     minimal_output_console.log(confluence.get_url(final_page))
