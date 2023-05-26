@@ -242,7 +242,7 @@ class MinimalConfluence:
         # return self.api.content(page.id).post(
         return self._post(
             f"content/{page.id}/label",
-            data=[{"name": label, "type": "global"} for label in labels],
+            json=[{"name": label, "type": "global"} for label in labels],
         )
 
     def get_url(self, page):
