@@ -82,7 +82,9 @@ def upsert_page(
             f"{page_message} [v{page_hash}]" if page_message else f"[v{page_hash}]"
         )
 
-    if len(extra_labels) != 0:
+    if extra_labels and len(extra_labels) != 0:
+        if not page.labels:
+            page.labels = []
         page.labels = list(page.labels + extra_labels)
 
     action = None
@@ -118,20 +120,28 @@ def upsert_page(
             and page.labels
             and labels_need_updating(page, existing_page)
         ):
-            # print(f"Adding labels to page: {page.title} {page.labels}")
+            print(f"Adding labels to page: {page.title} {page.labels}")
             confluence.add_labels(page=existing_page, labels=page.labels)
 
     return UpsertResult(action=action, response=existing_page)
 
 
 def labels_need_updating(page, existing_page):
+    # If page.labels is None, return False
     if page.labels is None:
         return False
 
-    if sorted(
-        [label.name for label in existing_page.metadata.labels.results]
-    ) != sorted(page.labels):
+    # If existing_page doesn't have metadata or metadata.labels, return True
+    if not hasattr(existing_page, 'metadata') or not hasattr(existing_page.metadata, 'labels'):
         return True
+
+    # If labels exist, compare them
+    if sorted([label.name for label in getattr(existing_page.metadata.labels, 'results', [])]) != sorted(page.labels):
+        return True
+
+    # Default return statement
+    return False
+
 
 
 def page_needs_updating(page, existing_page, replace_all_labels):
