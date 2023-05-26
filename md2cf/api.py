@@ -260,7 +260,6 @@ class MinimalConfluence:
     def get_all_pages_from_space(
         self,
         space,
-        start=0,
         limit=250,
         status=None,
         expand=None,
@@ -270,38 +269,46 @@ class MinimalConfluence:
         Get all pages from space
 
         :param space:
-        :param start: OPTIONAL: The start point of the collection to return. Default: None (0).
         :param limit: OPTIONAL: The limit of the number of pages to return, this may be restricted by
-                            fixed system limits. Default: 50
+                                fixed system limits. Default: 50
         :param status: OPTIONAL: list of statuses the content to be found is in.
-                                 Defaults to current is not specified.
-                                 If set to 'any', content in 'current' and 'trashed' status will be fetched.
-                                 Does not support 'historical' status for now.
+                                    Defaults to current is not specified.
+                                    If set to 'any', content in 'current' and 'trashed' status will be fetched.
+                                    Does not support 'historical' status for now.
         :param expand: OPTIONAL: a comma separated list of properties to expand on the content.
-                                 Default value: history,space,version.
+                                    Default value: history,space,version.
         :param content_type: the content type to return. Default value: page. Valid values: page, blogpost.
         :return:
         """
         url = "content"
-        params = {}
-        if space:
-            params["spaceKey"] = space
-        if start:
-            params["start"] = start
-        if limit:
-            params["limit"] = limit
+        params = {
+            "spaceKey": space,
+            "limit": limit,
+            "type": content_type,
+            "start": 0
+        }
         if status:
             params["status"] = status
         if expand:
             params["expand"] = expand
-        if content_type:
-            params["type"] = content_type
 
-        try:
-            return self._get(url, params=params)
-        except requests.HTTPError as e:
-            if e.response.status_code == 404:
-                raise Exception(
-                    "The calling user does not have permission to view the content",
-                )
-            raise
+        all_pages = []
+        while True:
+            try:
+                response = self._get(url, params=params)
+            except requests.HTTPError as e:
+                if e.response.status_code == 404:
+                    raise Exception(
+                        "The calling user does not have permission to view the content",
+                    )
+                raise
+            # Add the pages from this response to our list
+            all_pages += response.results
+            # Check if there are more pages to retrieve
+            if '_links' in response and 'next' in response._links:
+                # If there are, update the 'start' parameter for the next request
+                params["start"] += limit
+            else:
+                # If there aren't, break the loop
+                break
+        return all_pages
