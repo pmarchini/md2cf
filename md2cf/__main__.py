@@ -724,7 +724,8 @@ def update_pages_with_relative_links(
                         only_changed=args.only_changed,
                         replace_all_labels=args.replace_all_labels,
                         minor_edit=True,
-                        extra_labels= extra_labels if extra_labels else None
+                        extra_labels= extra_labels if extra_labels else None,
+                        force=True
                     )
                 except Exception as e:
                     error = e

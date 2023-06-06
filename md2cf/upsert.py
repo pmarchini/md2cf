@@ -54,6 +54,7 @@ def upsert_page(
     replace_all_labels: bool = False,
     minor_edit: bool = False,
     extra_labels: list[str] = [],
+    force: bool =False
 ):
     existing_page = confluence.get_page(
         title=page.title,
@@ -77,7 +78,7 @@ def upsert_page(
 
     page_message = message
     if only_changed:
-        page_hash = page.get_content_hash()
+        page_hash = page.original_hash
         page_message = (
             f"{page_message} [v{page_hash}]" if page_message else f"[v{page_hash}]"
         )
@@ -101,7 +102,10 @@ def upsert_page(
         action = UpsertAction.CREATED
     else:
         if not only_changed or page_needs_updating(
-            page, existing_page, replace_all_labels
+            page, 
+            existing_page, 
+            replace_all_labels,
+            force
         ):
             existing_page = confluence.update_page(
                 page=existing_page,
@@ -144,7 +148,15 @@ def labels_need_updating(page, existing_page):
 
 
 
-def page_needs_updating(page, existing_page, replace_all_labels):
+def page_needs_updating(
+        page: md2cf.document.Page, 
+        existing_page, 
+        replace_all_labels,
+        force=False):
+
+    if force:
+        return True
+
     if page.parent_id is None and existing_page.ancestors:
         # page wants to become a top level page and was not one before
         # (top level pages only have one ancestor: the space's home page)
@@ -166,7 +178,7 @@ def page_needs_updating(page, existing_page, replace_all_labels):
         )
         if existing_page_hash_match is not None:
             original_page_hash = existing_page_hash_match.group(1)
-            if original_page_hash == page.get_content_hash():
+            if original_page_hash == page.original_hash:
                 return False
 
     return True

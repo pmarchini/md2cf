@@ -110,7 +110,7 @@ class ConfluenceRenderer(mistune.Renderer):
             and not parsed_link.fragment
         ):
             # relative link
-            replacement_link = f"md2cf-internal-link-{uuid.uuid4()}"
+            replacement_link = f"md2cf-internal-link-{self.title}-{link}"
             self.relative_links.append(
                 RelativeLink(
                     path=parsed_link.path,

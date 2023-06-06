@@ -26,6 +26,7 @@ class Page(object):
         space: str = None,
         labels: Optional[List[str]] = None,
         relative_links: Optional[List[RelativeLink]] = None,
+        body_with_link: str = '',
     ):
         self.title = title
         self.original_title = None
@@ -43,10 +44,14 @@ class Page(object):
         self.parent_title = parent_title
         self.space = space
         self.labels = labels
+        self.original_hash = self._generate_content_hash(body_with_link)
+
+    def _generate_content_hash(self, content: str):
+        return hashlib.sha1(content.encode()).hexdigest()
 
     def get_content_hash(self):
-        return hashlib.sha1(self.body.encode()).hexdigest()
-
+        return self._generate_content_hash(self.body)
+    
     def __repr__(self):
         return "Page({})".format(
             ", ".join(
@@ -273,14 +278,27 @@ def parse_page(
         remove_text_newlines=remove_text_newlines,
         enable_relative_links=enable_relative_links,
     )
+
     confluence_mistune = mistune.Markdown(renderer=renderer)
     confluence_content = confluence_mistune("".join(markdown_lines))
+    confluence_content_with_links = ''
+    
+    if(enable_relative_links):
+        renderer_with_original_links = ConfluenceRenderer(
+            use_xhtml=True,
+            strip_header=strip_header,
+            remove_text_newlines=remove_text_newlines,
+            enable_relative_links=False,
+        )
+        confluence_mistune_with_links = mistune.Markdown(renderer=renderer_with_original_links)
+        confluence_content_with_links = confluence_mistune_with_links("".join(markdown_lines))
 
     page = Page(
         title=renderer.title,
         body=confluence_content,
         attachments=renderer.attachments,
         relative_links=renderer.relative_links,
+        body_with_link= confluence_content_with_links if confluence_content_with_links else None
     )
 
     return page
