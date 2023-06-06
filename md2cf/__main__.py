@@ -418,13 +418,11 @@ def main():
             markup=True,
         )
         colliding_titles_table = rich.table.Table(box=box.SIMPLE)
-        colliding_titles_table.add_column("Title")
         colliding_titles_table.add_column("File")
         for title in colliding_titles:
             for filename in [
                 page.file_path for page in pages_to_upload if page.title == title
             ]:
-                # error_console.log(f"{title}\t{filename}\n", markup=True)
                 colliding_titles_table.add_row(title, str(filename))
         error_console.log(colliding_titles_table)
         sys.exit(1)
